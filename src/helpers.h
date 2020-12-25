@@ -4,6 +4,8 @@
 #include <math.h>
 #include <string>
 #include <vector>
+#include "spline.h"
+#include <iostream>
 
 // for convenience
 using std::string;
@@ -131,6 +133,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s,
                      const vector<double> &maps_x, 
                      const vector<double> &maps_y) {
   int prev_wp = -1;
+        std::cout<<"here inside the change trajectory"<<maps_s.size()<<std::endl;
 
   while (s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1))) {
     ++prev_wp;
