@@ -9,6 +9,8 @@
 #include "json.hpp"
 #include <map>
 #include "spline.h"
+#include <sstream>
+#include <utility>
 
 // for convenience
 using nlohmann::json;
@@ -25,7 +27,18 @@ int get_lane(double d)
    4<=d<8 lane 1
    8<=d<12 lane 2
   */
-  return (int)d/4;
+  int car_lane = -1;
+   if(d > 0 && d < 4)
+   {
+     car_lane = 0;
+   }else if(d > 4 && d < 8)
+   {
+     car_lane = 1;
+   }else if(d > 8 && d < 12)
+   {
+     car_lane = 2;
+   }
+  return car_lane;
 }
 int main() {
   uWS::Hub h;
@@ -38,17 +51,16 @@ int main() {
   vector<double> map_waypoints_dy;
 
   // Waypoint map to read from
-  string map_file_ = "../data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
-//   std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
+  string file = "../data/highway_map.csv";
   string line;
-  std::ifstream in_map_(map_file_.c_str(),std::ifstream::in);
+  std::ifstream in_map_(file);
   if (in_map_.is_open())
   {
-	while (getline(in_map_,line)) {
-      std::cout<<"asdfadfs"<<std::endl;
+	while (getline(in_map_,line))
+    {
     std::istringstream iss(line);
     double x;
     double y;
@@ -65,7 +77,7 @@ int main() {
     map_waypoints_s.push_back(s);
     map_waypoints_dx.push_back(d_x);
     map_waypoints_dy.push_back(d_y);
-  }
+    }
     in_map_.close();
   }
 
@@ -99,7 +111,6 @@ int main() {
           double car_d = j[1]["d"];
           double car_yaw = j[1]["yaw"];
           double car_speed = j[1]["speed"];
-          int car_lane = get_lane(car_d);
 
           // Previous path data given to the Planner
           auto previous_path_x = j[1]["previous_path_x"];
@@ -111,13 +122,18 @@ int main() {
           // Sensor Fusion Data, a list of all other cars on the same side 
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
-          double preferred_buffer  = 30.0;
+          double preferred_buffer  = 25.0;
           
           vector<double> next_x_vals;
           vector<double> next_y_vals;
           
           int prev_size = previous_path_x.size();
-          bool too_close = false;
+          if(prev_size > 0)
+          {
+            car_s = end_path_s;
+          }
+          
+          bool car_front = false;
           bool car_left = false;
           bool car_right = false;
           
@@ -129,13 +145,22 @@ int main() {
             //get the current neighbouring car s , d , present lane 
             double nei_car_s = sensor_fusion[i][5];
             double nei_car_d = sensor_fusion[i][6];
-            double nei_car_lane = get_lane(nei_car_d);
+            int nei_car_lane  = get_lane(nei_car_d);
+             if(nei_car_lane < 0)
+             {
+               continue;
+             }
+            double vx = sensor_fusion[i][3];
+            double vy = sensor_fusion[i][4];
+            double nei_car_speed = sqrt(vx*vx + vy*vy);
             /*check whether the neighbouring car is 
             1.Too close(based on the preferred buffer distance between the two)
             2.In the relative left lane 
             3.In the relative right lane 
             */
-            if(nei_car_lane == car_lane)
+            
+            nei_car_s+=((double)nei_car_speed * 0.02 * prev_size); //observed car might have travelled further within the tema that we have received the measurement .
+            if(nei_car_lane == lane)
             {
               //car in the same lane as that of the neighbouring car
               if (nei_car_s>car_s)
@@ -144,7 +169,7 @@ int main() {
                 if(nei_car_s - car_s <=preferred_buffer)
                 {
                   //infront car is too close to the ego car
-                  too_close = true;
+                  car_front = true;
                 }
               }
             }
@@ -160,14 +185,12 @@ int main() {
                 	"car_s-preferred_buffer < nei_car_s < car_s+preferred_buffer"
                 */
                 //neighbouring car is left to the current car
-                if(car_s-30<nei_car_s && car_s+30>nei_car_s)
+                if(car_s-preferred_buffer<nei_car_s && car_s+preferred_buffer>nei_car_s)
                 {
                   //this means that there is clearly a car and we cannot make a transition to the left.
                 	car_left = true;
                 }
-              }
-              
-              if(nei_car_lane == lane+1)
+              }else if(nei_car_lane == lane+1)
               {
                  /*
                 inorder to flag a neighbouring car present to the left of the car it has to satisfy the following condition
@@ -176,7 +199,7 @@ int main() {
                 	"car_s-preferred_buffer < nei_car_s < car_s+preferred_buffer"
                 */
                 //neighbouring car is right to the current car
-                if(car_s-30<nei_car_s && car_s+30>nei_car_s)
+                if(car_s-preferred_buffer<nei_car_s && car_s+preferred_buffer>nei_car_s)
                 {
                   //this means that there is clearly a car and we cannot make a transition to the left.
                 	car_right = true;
@@ -192,24 +215,20 @@ int main() {
           2. if ther is no car infront and too far away then, we can maintain the lane speeding up or for preference we can change to the center lane based on the avialability
           */
           
-          
-       		
-          if(too_close)
+          if(car_front)
           {
             if(!car_left && lane>0)
             {
               //there is a space to the left and we are not crossing the highway yellow line
-              lane = lane-1;
+              lane-=1;
             }else if(!car_right && lane < 2)
             {
               //there is a space to the right and we are not crossing the highway boundaries
-              lane  = lane +1;
-            }else
-            {
-              ref_vel -= 0.224;  // 5m/s acceleration
-            }
-
-            
+              lane+=1;
+            } 
+                
+            std::cout<<"in changing acceleration slowly"<<std::endl;
+            ref_vel-=0.3584;
           }
           else
           {
@@ -217,33 +236,31 @@ int main() {
             if(lane !=1)
             {
               //car not in the middle lane , 
-              if(lane  == 0 && !car_right)
-              {
-                //then we can change to right lane that is lane +=1
-                lane+=1;
-              }
-              if(lane  == 2 && !car_left)
+              if((lane  == 0 && !car_right) || (lane  == 2 && !car_left))
               {
                 //then we can change to left lane that is lane-=1
-                lane-=1;
+                lane = 1;
               }
             }
             if(ref_vel < 49.5)
             {
-              ref_vel += 0.224;
+              ref_vel+=0.3584; //acelerating if the reference velocity is less that some velocity ,,since velocity can read 49.5+/-5.00
+
             }
           }
-
           /*
           We have the correct lane that we want to travel to , then we have to generate the jerk minimization trajectory by using some way points in the middle , this way point involves some way points from the previous path , this ensures for a smooth transition between the paths .
           */
           
-          vector<vector<double>> points;
-          double reference_yaw = car_yaw;
+          //variables to store the sample points to define a spline
+          vector<double> point_x;
+          vector<double> point_y;
+
           
+          double reference_yaw = deg2rad(car_yaw);
           double reference_x = car_x;
           double reference_y = car_y;
-          //including two previous points
+          //including two previous points for smooth tansition
 
           if(!(prev_size < 2))
           {
@@ -256,42 +273,43 @@ int main() {
 			//getting the reference yaw
             reference_yaw = atan2(reference_y - pre_prev_y, reference_x - pre_prev_x);
 
-            vector<double> point1{reference_x,reference_y};
-            vector<double> point2{pre_prev_x,pre_prev_y};
-            points.push_back(point1);
-            points.push_back(point2);
+            point_x.push_back(pre_prev_x);
+            point_x.push_back(reference_x);
+
+            point_y.push_back(pre_prev_y);
+            point_y.push_back(reference_y);
           }
           else
           {
             //there are not enough previous path points to include in the points
             //so we extrapolate backwards based on the car present yaw
-            double point_x = car_x - cos(car_yaw);
-            double point_y = car_y - sin(car_yaw);
-            vector<double> point1{point_x,point_y};
-            vector<double> point2{car_x,car_y};
-            points.push_back(point1);
-            points.push_back(point2);
+            double poin_x = car_x - cos(car_yaw);
+            double poin_y = car_y - sin(car_yaw);
+            point_x.push_back(poin_x);
+            point_x.push_back(car_x);
+
+            point_y.push_back(poin_y);
+            point_y.push_back(car_y);
              
           }
 
-          //next we have to generate some more points into future using the lane changed and also the 10 gapped s values
-          double dummy_car_s = car_s;
-          for(int i =10;i<=90;i+=10)
+          //next we have to generate some more points into future using the lane changed and also the 30 gapped s values
+          for(int i =30;i<=90;i+=30)
           {
-            vector<double> wp = getXY(dummy_car_s+i, 2+4*lane, map_waypoints_s,map_waypoints_x,map_waypoints_y);
-            points.push_back(wp);
-            dummy_car_s +=i; 
+            vector<double> wp = getXY(car_s+i, 2+4*lane, map_waypoints_s,map_waypoints_x,map_waypoints_y);
+          point_x.push_back(wp[0]);
+
+          point_y.push_back(wp[1]);
           }
-          /*now we got the way points(discretizing the trajectory) in map space ...now have to transform them into car reference frame inordr to make an*/
+          
+          /*now we got the way points(discretizing the trajectory) in map space ...now have to transform them into car reference frame for easy calculation of the spline points before we transform them again in mapspace for plotting in the simulation*/
            
-          for(int i =0;i<points.size();i++)
+          for(int i =0;i<point_x.size();i++)
            {
-			 double transl_x = points[i][0] - reference_x;
-             double transl_y = points[i][1] - reference_y;
-             vector<double> point;
-             point.push_back(transl_x*cos(0-reference_yaw) - transl_y*sin(0-reference_yaw));
-             point.push_back(transl_x*sin(0-reference_yaw) + transl_y*cos(0-reference_yaw));
-             points[i] = point;
+			 double transl_x = point_x[i] - reference_x;
+             double transl_y = point_y[i] - reference_y;
+             point_x[i] = transl_x*cos(0-reference_yaw) - transl_y*sin(0-reference_yaw);
+             point_y[i] = transl_x*sin(0-reference_yaw) + transl_y*cos(0-reference_yaw);
            }
            
            //now we got the transformed coordinates of the waypoints on the trajectory
@@ -299,7 +317,7 @@ int main() {
            //we need to get the sampled points on interpolated polynomial at intervals
            //equal to total_end_dist/(0.02*target_speed(in m/s ..divide by 2.24))
            
-           //first keep the previous path
+           //first keep the previous path points for smooth transition
           for(int i = 0; i < prev_size; i++)
           {
             next_x_vals.push_back(previous_path_x[i]);
@@ -309,42 +327,33 @@ int main() {
            //interpolating the waypoints using cubic spline technique
            // it is under tk namespace in spline.h header file
            tk::spline spl;
-           vector<double> point_x;
-           vector<double> point_y;
-           for(int i =0;i<points.size();i++)
-           {
-             point_x.push_back(points[i][0]);
-             point_y.push_back(points[i][1]);
-           }
            spl.set_points(point_x,point_y);
            
            //now we have to sample the interpolated polynomial and include enough of them so that we have 50 points.
-           //for this we can upto only 60 s value and get corresponding y value 
            double x = 30;
            double y = spl(x);
            double dist = sqrt(x*x+y*y); //becuase we have shifted the points to make the car position as origin 
-           double dist_travelled_per_step = 0.02*ref_vel/2.24;
- 		   double sample_at = dist/dist_travelled_per_step;
            double dummy_x = 0;
+          double N = dist / (0.02 * ref_vel/2.24);
            for(int i=0;i<50 -prev_size;i++)
            {
-             double x_point = dummy_x+sample_at;
-             double y_point = spl(x);
-             
-             //now inorder to lay this down on the road ...should be again transformed into the map coordinates
-             double map_x = x_point*cos(reference_yaw) - y_point*sin(reference_yaw);
-             double map_y = x_point*sin(reference_yaw) + y_point*cos(reference_yaw);
-             map_x = map_x + reference_x;
-             map_y = map_y + reference_y;
-             next_x_vals.push_back(map_x);
-             next_y_vals.push_back(map_y);
-             dummy_x=x_point;
+            double x_point = dummy_x + x / N;
+            double y_point = spl(x_point);
+
+            dummy_x = x_point;
+
+            double x_dum = x_point;
+            double y_dum = y_point;
+
+            // Rotating back to normal after rotating it earlier.
+            x_point = x_dum * cos(reference_yaw) - y_dum * sin(reference_yaw);
+            y_point = x_dum * sin(reference_yaw) + y_dum * cos(reference_yaw);
+
+            x_point += reference_x;
+            y_point += reference_y;   
+             next_x_vals.push_back(x_point);
+             next_y_vals.push_back(y_point);
            }
-          /**
-          	TODO
-           * generate the best path made up of (x,y) points that the car will visit
-           *   sequentially every .02 seconds
-           */
           json msgJson;
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
