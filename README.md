@@ -379,13 +379,13 @@ next_y_vals.push_back(y_point);
 
 ● Output pictures of ego vehicle doing a tight maneuver
 
-![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(1).jpg?raw=true)
+![](https://github.com/nikhilbadam56/HighwayDriving/blob/master/output/TurboVNC_%20unix_1%20-%20noVNC%20-%20Google%20Chrome%202020-12-26%2010-49-53_Trim_Moment.jpg)
 
-![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(2).jpg?raw=true)
+![](https://github.com/nikhilbadam56/HighwayDriving/blob/master/output/TurboVNC_%20unix_1%20-%20noVNC%20-%20Google%20Chrome%202020-12-26%2010-49-53_Trim_Moment(2).jpg)
 
-![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(3).jpg?raw=true)
+![](https://github.com/nikhilbadam56/HighwayDriving/blob/master/output/TurboVNC_%20unix_1%20-%20noVNC%20-%20Google%20Chrome%202020-12-26%2010-49-53_Trim_Moment(3).jpg)
 
-![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(4).jpg?raw=true)
+![](https://github.com/nikhilbadam56/HighwayDriving/blob/master/output/TurboVNC_%20unix_1%20-%20noVNC%20-%20Google%20Chrome%202020-12-26%2010-49-53_Trim_Moment(4).jpg)
 
 ## To Improve:
 To improve the current algorithm :
