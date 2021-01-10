@@ -379,22 +379,25 @@ next_y_vals.push_back(y_point);
 
 ● Output pictures of ego vehicle doing a tight maneuver
 
-![alt text](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(1).jpg)
+![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(1).jpg?raw=true)
 
-![alt text](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(2).jpg)
+![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(2).jpg?raw=true)
 
-![alt text](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(3).jpg)
+![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(3).jpg?raw=true)
 
-![alt text](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(4).jpg)
+![](output/TurboVNC_ unix_1 - noVNC - Google Chrome 2020-12-26 10-49-53_Trim_Moment(4).jpg?raw=true)
 
 ## To Improve:
 To improve the current algorithm :
+
 ● we can further add the cost optimization function that calculates the cost for speed,
 cost for acceleration limiting, cost for respective lane changing.
+
 ● In my opinion, we can use adaptive speed controlling (PID controllers) to control the
 speed continuously through an adaptive amount rather than a fixed decrease in the
 velocity.
-###### References :
+
+## References :
 
 ● Referred the Q/A video section code for developing the above algorithm.
 
